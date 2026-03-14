@@ -1,13 +1,19 @@
 plugins {
-    alias(libs.plugins.android.library)
+    alias(libs.plugins.android.application)
 }
 
 android {
     namespace = "com.projectmaidgroup.platform.shizuku_service"
-    compileSdk = 36
+    compileSdk {
+        version = release(36)
+    }
 
     defaultConfig {
+        applicationId = "com.projectmaidgroup.platform.shizuku_service"
         minSdk = 31
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
