@@ -7,28 +7,17 @@ import androidx.compose.ui.viewinterop.AndroidView
 @Composable
 fun Live2DAvatarScreen(
     model: Live2DModelSpec,
-    modifier: Modifier = Modifier,
-    backgroundColor: Int,
-    replyMotionTrigger: Int
+    modifier: Modifier = Modifier
 ) {
     AndroidView(
         modifier = modifier,
         factory = { context ->
             Live2DGLSurfaceView(context).apply {
                 loadModel(model)
-                setClearColor(backgroundColor)
             }
         },
         update = { view ->
-            view.setClearColor(backgroundColor)
             view.loadModel(model)
-
-            if (view.lastReplyMotionTrigger != replyMotionTrigger) {
-                view.lastReplyMotionTrigger = replyMotionTrigger
-                if (replyMotionTrigger > 0) {
-                    view.playReplyMotion()
-                }
-            }
         }
     )
 }

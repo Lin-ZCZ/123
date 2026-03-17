@@ -1,7 +1,6 @@
 package com.projectmaidgroup.ui.avatar
 
 import android.content.Context
-import android.graphics.Color
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.util.Log
@@ -15,50 +14,41 @@ class Live2DRenderer(
 ) : GLSurfaceView.Renderer {
 
     private var loadFailed = false
+    private var failReason: String? = null
     private var currentSpec: Live2DModelSpec? = null
     private var mao: MaoUserModel? = null
     private var started = false
     private var pendingTapMotion = false
-    private var pendingReplyMotion = false
+
     private var surfaceWidth = 1
     private var surfaceHeight = 1
 
-    private var clearR = 0.12f
-    private var clearG = 0.12f
-    private var clearB = 0.16f
-    private var clearA = 1.0f
-
+    private val cubismOption = CubismFramework.Option().apply {
+        logFunction = null
+        loggingLevel = CubismFramework.Option.LogLevel.OFF
+    }
     fun setModel(spec: Live2DModelSpec) {
         currentSpec = spec
         mao = null
         loadFailed = false
-    }
-
-    fun setClearColor(colorInt: Int) {
-        clearR = Color.red(colorInt) / 255f
-        clearG = Color.green(colorInt) / 255f
-        clearB = Color.blue(colorInt) / 255f
-        clearA = Color.alpha(colorInt) / 255f
+        failReason = null
     }
 
     fun playTapMotion() {
-        mao?.playTapMotion() ?: run { pendingTapMotion = true }
-    }
-
-    fun playRandomReplyMotion() {
-        mao?.playRandomReplyMotion() ?: run { pendingReplyMotion = true }
+        pendingTapMotion = true
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-        GLES20.glClearColor(clearR, clearG, clearB, clearA)
+        GLES20.glClearColor(0.12f, 0.12f, 0.16f, 1.0f)
 
         try {
-            if (!started) {
-                CubismFramework.cleanUp()
-                CubismFramework.startUp(CubismFramework.Option())
-                CubismFramework.initialize()
-                started = true
+            if (!CubismFramework.isStarted()) {
+                CubismFramework.startUp()
             }
+            if (!CubismFramework.isInitialized()) {
+                CubismFramework.initialize()
+            }
+            started = true
             Log.d("Live2DRenderer", "Cubism init success")
         } catch (t: Throwable) {
             loadFailed = true
@@ -70,41 +60,43 @@ class Live2DRenderer(
         surfaceWidth = width
         surfaceHeight = height
         GLES20.glViewport(0, 0, width, height)
+        Log.d("Live2DRenderer", "surface changed: ${width}x${height}")
     }
 
     override fun onDrawFrame(gl: GL10?) {
-        GLES20.glClearColor(clearR, clearG, clearB, clearA)
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
-        if (loadFailed) return
+        if (loadFailed) {
+            return
+        }
 
         try {
             if (mao == null) {
                 val spec = currentSpec ?: AvatarModels.DefaultAssistant
+                Log.d("Live2DRenderer", "loading model: ${spec.folder}/${spec.modelJson}")
+
                 mao = MaoUserModel(context).apply {
                     load(
                         modelDir = spec.folder,
                         modelJson = spec.modelJson
                     )
                 }
+
+                Log.d("Live2DRenderer", "model load success")
             }
 
-            mao?.let { model ->
-                if (pendingTapMotion) {
-                    pendingTapMotion = false
-                    model.playTapMotion()
-                }
-                if (pendingReplyMotion) {
-                    pendingReplyMotion = false
-                    model.playRandomReplyMotion()
-                }
-
-                model.update(1f / 60f)
-                model.draw(surfaceWidth, surfaceHeight)
+            if (pendingTapMotion) {
+                pendingTapMotion = false
+                Log.d("Live2DRenderer", "Tap motion requested")
             }
+
+            mao?.update(1f / 60f)
+            mao?.draw(surfaceWidth, surfaceHeight)
         } catch (t: Throwable) {
             loadFailed = true
             Log.e("Live2DRenderer", "onDrawFrame failed", t)
         }
     }
+
+    fun getFailReason(): String? = failReason
 }

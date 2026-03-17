@@ -11,12 +11,14 @@ class Live2DGLSurfaceView @JvmOverloads constructor(
 
     private val live2dRenderer = Live2DRenderer(context)
 
-    var lastReplyMotionTrigger: Int = Int.MIN_VALUE
-
     init {
         setEGLContextClientVersion(2)
+
         preserveEGLContextOnPause = true
+
         setRenderer(live2dRenderer)
+
+        // 先保留连续渲染，后面调通了再优化
         renderMode = RENDERMODE_CONTINUOUSLY
 
         setOnClickListener {
@@ -25,17 +27,9 @@ class Live2DGLSurfaceView @JvmOverloads constructor(
     }
 
     fun loadModel(spec: Live2DModelSpec) {
-        queueEvent { live2dRenderer.setModel(spec) }
-        requestRender()
-    }
-
-    fun setClearColor(colorInt: Int) {
-        queueEvent { live2dRenderer.setClearColor(colorInt) }
-        requestRender()
-    }
-
-    fun playReplyMotion() {
-        queueEvent { live2dRenderer.playRandomReplyMotion() }
+        queueEvent {
+            live2dRenderer.setModel(spec)
+        }
         requestRender()
     }
 
